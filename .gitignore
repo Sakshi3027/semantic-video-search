@@ -1,0 +1,10 @@
+venv/
+svs-env/
+.env
+__pycache__/
+*.pyc
+*.egg-info/
+.DS_Store
+*.pt
+*.bin
+downloads/
