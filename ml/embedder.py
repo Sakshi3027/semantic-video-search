@@ -82,13 +82,13 @@ def upsert_chunks_to_pinecone(video_id: str, chunks: list[dict]) -> int:
         vector_id = f"{video_id}_{chunk['type']}_{i}"
         vectors.append({
             "id": vector_id,
-            "values": embedding,
+            "values": [float(v) for v in embedding],  # convert numpy -> python float
             "metadata": {
-                "video_id": video_id,
-                "text": chunk["text"][:500],  # Pinecone metadata limit
-                "start_time": chunk["start_time"],
-                "end_time": chunk["end_time"],
-                "type": chunk["type"],  # "audio" or "visual"
+                "video_id": str(video_id),
+                "text": chunk["text"][:500],
+                "start_time": float(chunk["start_time"]),  # convert here too
+                "end_time": float(chunk["end_time"]),
+                "type": str(chunk["type"]),
             }
         })
 
