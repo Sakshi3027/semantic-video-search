@@ -1,6 +1,6 @@
 # Semantic Video Search Engine
 
-> Search across video content using natural language — find exact moments instantly.
+> Search across video content using natural language : find exact moments instantly.
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
@@ -32,13 +32,13 @@ moment with a YouTube timestamp link.
 
 ## Features
 
-- **Natural Language Search** — semantic search using sentence embeddings
-- **Smart Search** — AI query expansion + cross-encoder re-ranking
-- **Auto-Chapter Generation** — automatically splits videos into topic sections
-- **Async Processing** — Celery job queue handles long videos in background
-- **Multi-Video Search** — search across entire video library at once
-- **YouTube Deep Links** — results link directly to the exact timestamp
-- **Production Dashboard** — Streamlit UI with search, library, analytics, admin
+- **Natural Language Search** - semantic search using sentence embeddings
+- **Smart Search** - AI query expansion + cross-encoder re-ranking
+- **Auto-Chapter Generation** - automatically splits videos into topic sections
+- **Async Processing** - Celery job queue handles long videos in background
+- **Multi-Video Search** - search across entire video library at once
+- **YouTube Deep Links** - results link directly to the exact timestamp
+- **Production Dashboard** - Streamlit UI with search, library, analytics, admin
 
 ## Architecture
 ```
