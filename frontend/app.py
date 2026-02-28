@@ -18,13 +18,8 @@ st.set_page_config(
 # ── Dark Theme CSS ───────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* Main background */
     .stApp { background-color: #0e1117; color: #fafafa; }
-    
-    /* Sidebar */
     [data-testid="stSidebar"] { background-color: #161b22; border-right: 1px solid #30363d; }
-    
-    /* Cards */
     .card {
         background: #161b22;
         border: 1px solid #30363d;
@@ -34,8 +29,6 @@ st.markdown("""
         transition: border-color 0.2s;
     }
     .card:hover { border-color: #58a6ff; }
-    
-    /* Search result card */
     .result-card {
         background: #161b22;
         border: 1px solid #30363d;
@@ -44,8 +37,6 @@ st.markdown("""
         padding: 16px;
         margin: 8px 0;
     }
-    
-    /* Score badge */
     .score-badge {
         background: #1f6feb;
         color: white;
@@ -54,8 +45,6 @@ st.markdown("""
         font-size: 12px;
         font-weight: bold;
     }
-    
-    /* Timestamp badge */
     .timestamp-badge {
         background: #238636;
         color: white;
@@ -64,8 +53,6 @@ st.markdown("""
         font-size: 12px;
         font-weight: bold;
     }
-
-    /* Type badge */
     .type-badge {
         background: #6e40c9;
         color: white;
@@ -73,8 +60,6 @@ st.markdown("""
         border-radius: 20px;
         font-size: 12px;
     }
-
-    /* Metric cards */
     .metric-card {
         background: #161b22;
         border: 1px solid #30363d;
@@ -84,22 +69,16 @@ st.markdown("""
     }
     .metric-value { font-size: 36px; font-weight: bold; color: #58a6ff; }
     .metric-label { font-size: 14px; color: #8b949e; margin-top: 4px; }
-
-    /* Status badges */
     .status-completed { color: #3fb950; font-weight: bold; }
     .status-failed { color: #f85149; font-weight: bold; }
     .status-pending { color: #d29922; font-weight: bold; }
     .status-downloading { color: #58a6ff; font-weight: bold; }
-
-    /* Input fields */
     .stTextInput input, .stTextArea textarea {
         background-color: #161b22 !important;
         border: 1px solid #30363d !important;
         color: #fafafa !important;
         border-radius: 8px !important;
     }
-
-    /* Buttons */
     .stButton button {
         background: #1f6feb;
         color: white;
@@ -110,14 +89,18 @@ st.markdown("""
         transition: background 0.2s;
     }
     .stButton button:hover { background: #388bfd; }
-
-    /* Hide streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-
-    /* Divider */
     hr { border-color: #30363d; }
+    .chapter-card {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-left: 4px solid #d29922;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 6px 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -177,8 +160,6 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Health check
-    health = api_get("/health" .replace("/api/v1", ""))
     try:
         health = requests.get("http://localhost:8000/health", timeout=5).json()
         st.success("🟢 API Online")
@@ -223,24 +204,32 @@ if page == "🔍 Search":
     selected_video_label = st.selectbox("Filter by video", list(video_options.keys()))
     selected_video_id = video_options[selected_video_label]
 
-    search_clicked = st.button("🔍 Search", width="stretch")
+    # Two search buttons
+    col_search, col_smart = st.columns([1, 1])
+    with col_search:
+        search_clicked = st.button("🔍 Search", use_container_width=True)
+    with col_smart:
+        smart_clicked = st.button("🧠 Smart Search (AI Enhanced)", use_container_width=True)
 
-    if search_clicked and query:
-        with st.spinner("Searching..."):
+    if (search_clicked or smart_clicked) and query:
+        endpoint = "/search/smart" if smart_clicked else "/search"
+        label = "🧠 AI-enhanced searching..." if smart_clicked else "Searching..."
+
+        with st.spinner(label):
             payload = {"query": query, "top_k": top_k}
             if selected_video_id:
                 payload["video_id"] = selected_video_id
-
-            results, status = api_post("/search", payload)
+            results, status = api_post(endpoint, payload)
 
         if status == 200 and results.get("results"):
+            if smart_clicked:
+                st.info("🧠 Smart search used AI query expansion + re-ranking for better results")
             st.markdown(f"### Found {results['total_results']} results in {results['latency_ms']:.0f}ms")
             st.markdown("---")
 
             for i, r in enumerate(results["results"]):
                 score_pct = int(r["score"] * 100)
                 youtube_url = r.get("youtube_url", "#")
-
                 st.markdown(f"""
                 <div class="result-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
@@ -259,12 +248,13 @@ if page == "🔍 Search":
                     </a>
                 </div>
                 """, unsafe_allow_html=True)
+
         elif status == 200:
             st.info("No results found. Try a different query.")
         else:
             st.error(f"Search failed: {results}")
 
-    elif search_clicked and not query:
+    elif (search_clicked or smart_clicked) and not query:
         st.warning("Please enter a search query.")
 
     # Example queries
@@ -279,12 +269,55 @@ if page == "🔍 Search":
     cols = st.columns(len(examples))
     for col, example in zip(cols, examples):
         with col:
-            if st.button(example, width="stretch"):
+            if st.button(example, use_container_width=True):
                 st.session_state["example_query"] = example
                 st.rerun()
 
     if "example_query" in st.session_state:
         st.info(f'Click the search box and type: "{st.session_state.example_query}"')
+
+    # ── Chapters Section ─────────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 📑 Auto-Generate Video Chapters")
+    st.markdown("Use AI to automatically identify topic sections in any processed video.")
+
+    chapter_videos = {v.get("title", "Unknown")[:50]: v.get("video_id") or v.get("id")
+                      for v in completed_videos}
+
+    if chapter_videos:
+        selected_chapter_video_title = st.selectbox(
+            "Select video for chapters",
+            list(chapter_videos.keys()),
+            key="chapter_video_select"
+        )
+        selected_chapter_video_id = chapter_videos[selected_chapter_video_title]
+
+        if st.button("📑 Generate Chapters", use_container_width=True):
+            with st.spinner("AI is analyzing video content and generating chapters..."):
+                chapters_data = api_get(f"/videos/{selected_chapter_video_id}/chapters")
+
+            if chapters_data and chapters_data.get("chapters"):
+                chapters = chapters_data["chapters"]
+                st.success(f"Generated {len(chapters)} chapters!")
+                for ch in chapters:
+                    vid_id = selected_chapter_video_id
+                    t = int(ch.get("start_time", 0))
+                    yt_url = f"https://www.youtube.com/watch?v={vid_id}&t={t}s"
+                    st.markdown(f"""
+                    <div class="chapter-card">
+                        <strong style="color:#d29922">⏱ {ch['timestamp_formatted']}</strong>
+                        &nbsp;&nbsp;
+                        <strong style="color:#fafafa">{ch['title']}</strong>
+                        &nbsp;&nbsp;
+                        <small style="color:#8b949e">
+                            {ch['timestamp_formatted']} - {int(ch.get('end_time', 0) // 60):02d}:{int(ch.get('end_time', 0) % 60):02d}
+                        </small>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.warning("Could not generate chapters. Make sure the audio file exists.")
+    else:
+        st.info("Process a video first to generate chapters.")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -294,7 +327,6 @@ elif page == "📚 Video Library":
     st.markdown("# 📚 Video Library")
     st.markdown("---")
 
-    # Submit new video
     with st.expander("➕ Add New Video", expanded=False):
         new_url = st.text_input("YouTube URL", placeholder="https://www.youtube.com/watch?v=...")
         use_vision = st.checkbox("Enable Vision Analysis (uses GPT-4o, costs more)", value=False)
@@ -312,7 +344,6 @@ elif page == "📚 Video Library":
 
     st.markdown("---")
 
-    # Video list
     videos = api_get("/videos") or []
     if not videos:
         st.info("No videos yet. Add your first video above!")
@@ -340,7 +371,6 @@ elif page == "📚 Video Library":
                     if proc_time:
                         st.metric("Process Time", f"{proc_time:.0f}s")
 
-                # Thumbnail if available
                 thumb = v.get("thumbnail_url")
                 if thumb and status == "completed":
                     st.image(thumb, width=200)
@@ -357,9 +387,7 @@ elif page == "📊 Analytics":
 
     videos = api_get("/videos") or []
     completed = [v for v in videos if v.get("status") == "completed"]
-    failed = [v for v in videos if v.get("status") == "failed"]
 
-    # Top metrics
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"""
@@ -375,7 +403,7 @@ elif page == "📊 Analytics":
             <div class="metric-label">Vectors in Pinecone</div>
         </div>""", unsafe_allow_html=True)
     with col3:
-        avg_time = sum(v.get("processing_time", 0) for v in completed) / len(completed) if completed else 0
+        avg_time = sum(v.get("processing_time") or 0 for v in completed) / len(completed) if completed else 0
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-value">{avg_time:.0f}s</div>
@@ -395,7 +423,6 @@ elif page == "📊 Analytics":
         col1, col2 = st.columns(2)
 
         with col1:
-            # Status distribution
             status_counts = {}
             for v in videos:
                 s = v.get("status", "unknown")
@@ -419,14 +446,13 @@ elif page == "📊 Analytics":
                 font_color="#fafafa",
                 title_font_color="#fafafa"
             )
-            st.plotly_chart(fig, width="stretch")
+            st.plotly_chart(fig, use_container_width=True)
 
         with col2:
-            # Processing time bar chart
-            if len(completed) > 1:
+            if len(completed) >= 1:
                 df = pd.DataFrame([{
                     "title": (v.get("title") or "Unknown")[:30],
-                    "processing_time": v.get("processing_time", 0),
+                    "processing_time": v.get("processing_time") or 0,
                     "chunks": v.get("total_chunks", 0)
                 } for v in completed])
 
@@ -443,9 +469,8 @@ elif page == "📊 Analytics":
                     title_font_color="#fafafa",
                     xaxis_tickangle=-45
                 )
-                st.plotly_chart(fig2, width="stretch")
+                st.plotly_chart(fig2, use_container_width=True)
 
-        # Video details table
         st.markdown("### Video Details")
         df_table = pd.DataFrame([{
             "Title": (v.get("title") or "N/A")[:40],
@@ -456,7 +481,7 @@ elif page == "📊 Analytics":
             "Total Vectors": v.get("total_chunks", 0),
             "Process Time": f"{v.get('processing_time') or 0:.0f}s"
         } for v in videos])
-        st.dataframe(df_table, width="stretch", hide_index=True)
+        st.dataframe(df_table, use_container_width=True, hide_index=True)
     else:
         st.info("Process some videos to see analytics!")
 

@@ -143,3 +143,82 @@ def delete_video(video_id: str, db: Session = Depends(get_db)):
 
     db.delete(video)
     db.commit()
+
+@router.post("/search/smart", response_model=SearchResponse)
+def smart_search_endpoint(request: SearchRequest, db: Session = Depends(get_db)):
+    """Enhanced search with query expansion and re-ranking."""
+    import time
+    start_time = time.time()
+
+    if not request.query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+    from ml.intelligence import smart_search
+    result = smart_search(
+        query=request.query,
+        video_id=request.video_id,
+        top_k=request.top_k
+    )
+
+    raw_results = result["results"]
+    results = []
+    for r in raw_results:
+        youtube_url = None
+        video_record = db.query(Video).filter(Video.id == r["video_id"]).first()
+        if video_record and "youtube.com" in video_record.url:
+            t = int(r["start_time"])
+            youtube_url = f"{video_record.url}&t={t}s"
+
+        results.append(SearchResult(
+            score=r["score"],
+            video_id=r["video_id"],
+            text=r["text"],
+            start_time=r["start_time"],
+            end_time=r["end_time"],
+            type=r["type"],
+            timestamp_formatted=r["timestamp_formatted"],
+            youtube_url=youtube_url
+        ))
+
+    latency_ms = round((time.time() - start_time) * 1000, 2)
+
+    # Log search
+    log = SearchLog(
+        query=request.query,
+        video_id=request.video_id,
+        results_count=len(results),
+        latency_ms=latency_ms
+    )
+    db.add(log)
+    db.commit()
+
+    return SearchResponse(
+        query=f"{request.query} (smart)",
+        results=results,
+        total_results=len(results),
+        latency_ms=latency_ms
+    )
+
+
+@router.get("/videos/{video_id}/chapters")
+def get_video_chapters(video_id: str, db: Session = Depends(get_db)):
+    """Auto-generate chapters for a video."""
+    video = db.query(Video).filter(
+        Video.id == video_id,
+        Video.status == ProcessingStatus.COMPLETED
+    ).first()
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found or not processed")
+
+    from ml.transcriber import transcribe_audio
+    from ml.intelligence import generate_chapters
+    from pathlib import Path
+
+    audio_path = f"downloads/{video_id}/audio.wav"
+    if not Path(audio_path).exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    chunks = transcribe_audio(audio_path)
+    chapters = generate_chapters(chunks, video.title or "Video")
+
+    return {"video_id": video_id, "title": video.title, "chapters": chapters}
