@@ -106,9 +106,9 @@ st.markdown("""
 
 
 # ── API Helpers ──────────────────────────────────────────────────────────────
-def api_get(endpoint):
+def api_get(endpoint, timeout=30):
     try:
-        r = requests.get(f"{API_BASE}{endpoint}", timeout=30)
+        r = requests.get(f"{API_BASE}{endpoint}", timeout=timeout)
         return r.json() if r.status_code == 200 else None
     except:
         return None
@@ -294,7 +294,7 @@ if page == "🔍 Search":
 
         if st.button("📑 Generate Chapters", use_container_width=True):
             with st.spinner("AI is analyzing video content and generating chapters..."):
-                chapters_data = api_get(f"/videos/{selected_chapter_video_id}/chapters")
+                chapters_data = api_get(f"/videos/{selected_chapter_video_id}/chapters", timeout=300)
 
             if chapters_data and chapters_data.get("chapters"):
                 chapters = chapters_data["chapters"]
@@ -315,7 +315,7 @@ if page == "🔍 Search":
                     </div>
                     """, unsafe_allow_html=True)
             else:
-                st.warning("Could not generate chapters. Make sure the audio file exists.")
+                st.error(f"Could not generate chapters. Response: {chapters_data}")
     else:
         st.info("Process a video first to generate chapters.")
 

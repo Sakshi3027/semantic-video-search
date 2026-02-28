@@ -203,6 +203,11 @@ def smart_search_endpoint(request: SearchRequest, db: Session = Depends(get_db))
 @router.get("/videos/{video_id}/chapters")
 def get_video_chapters(video_id: str, db: Session = Depends(get_db)):
     """Auto-generate chapters for a video."""
+    from ml.intelligence import generate_chapters
+    from ml.transcriber import transcribe_audio
+    from ml.video_processor import download_video
+    from pathlib import Path
+
     video = db.query(Video).filter(
         Video.id == video_id,
         Video.status == ProcessingStatus.COMPLETED
@@ -210,15 +215,20 @@ def get_video_chapters(video_id: str, db: Session = Depends(get_db)):
     if not video:
         raise HTTPException(status_code=404, detail="Video not found or not processed")
 
-    from ml.transcriber import transcribe_audio
-    from ml.intelligence import generate_chapters
-    from pathlib import Path
-
     audio_path = f"downloads/{video_id}/audio.wav"
+
+    # If audio doesn't exist, re-download it
     if not Path(audio_path).exists():
-        raise HTTPException(status_code=404, detail="Audio file not found")
+        print(f"Audio not found, re-downloading video {video_id}...")
+        try:
+            video_info = download_video(video.url, video_id)
+            audio_path = video_info["audio_path"]
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Could not download video: {str(e)}")
 
-    chunks = transcribe_audio(audio_path)
-    chapters = generate_chapters(chunks, video.title or "Video")
-
-    return {"video_id": video_id, "title": video.title, "chapters": chapters}
+    try:
+        chunks = transcribe_audio(audio_path)
+        chapters = generate_chapters(chunks, video.title or "Video")
+        return {"video_id": video_id, "title": video.title, "chapters": chapters}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chapter generation failed: {str(e)}")
