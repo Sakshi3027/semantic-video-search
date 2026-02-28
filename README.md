@@ -13,6 +13,23 @@ Upload any YouTube video and search through its content using natural language.
 Ask *"where did they discuss pricing strategy?"* and instantly jump to that exact
 moment with a YouTube timestamp link.
 
+## Screenshots
+
+### Semantic Search
+![Search](docs/images/search.png)
+
+### Video Library
+![Library](docs/images/library.png)
+
+### Analytics Dashboard
+![Analytics](docs/images/analytics.png)
+
+### Auto-Generated Chapters
+![Chapters](docs/images/chapters.png)
+
+### Admin Panel
+![Admin](docs/images/admin.png)
+
 ## Features
 
 - **Natural Language Search** — semantic search using sentence embeddings
