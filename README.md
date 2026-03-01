@@ -8,6 +8,7 @@
 ![Whisper](https://img.shields.io/badge/Whisper-faster--whisper-orange)
 
 ## Live Demo
+- **Frontend (Next.js):** https://svs-frontend-sable.vercel.app
 - **Dashboard:** http://35.224.101.198:8501
 - **API Docs:** http://35.224.101.198:8000/docs
 
