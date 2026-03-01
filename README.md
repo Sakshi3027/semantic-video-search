@@ -7,6 +7,11 @@
 ![Pinecone](https://img.shields.io/badge/Pinecone-Vector_DB-purple)
 ![Whisper](https://img.shields.io/badge/Whisper-faster--whisper-orange)
 
+## Live Demo
+- **Dashboard:** http://35.224.101.198:8501
+- **API Docs:** http://35.224.101.198:8000/docs
+
+
 ## What It Does
 
 Upload any YouTube video and search through its content using natural language.
