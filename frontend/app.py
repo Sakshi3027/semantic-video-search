@@ -6,7 +6,8 @@ import plotly.graph_objects as go
 from datetime import datetime
 
 # ── Config ──────────────────────────────────────────────────────────────────
-API_BASE = "http://localhost:8000/api/v1"
+import os
+API_BASE = os.getenv("API_BASE", "http://localhost:8000/api/v1")
 
 st.set_page_config(
     page_title="Semantic Video Search",
